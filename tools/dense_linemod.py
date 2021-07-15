@@ -72,12 +72,12 @@ phong_renderer = MeshRenderer(
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', type=str, default = './datasets/linemod/Linemod_preprocessed', help='dataset root dir')
-parser.add_argument('--model', type=str, default = './trained_checkpoints/linemod/pose_model_9_0.01310166542980859.pth',  help='resume PoseNet model')
-parser.add_argument('--refine_model', type=str, default = './trained_checkpoints/linemod/pose_refine_model_493_0.006761023565178073.pth',  help='resume PoseRefineNet model')
+parser.add_argument('--model', type=str, default = './trained_models/linemod/pose_model_9_0.01310166542980859.pth',  help='resume PoseNet model')
+parser.add_argument('--refine_model', type=str, default = './trained_models/linemod/pose_refine_model_493_0.006761023565178073.pth',  help='resume PoseRefineNet model')
 opt = parser.parse_args()
 
-opt.outf = 'trained_checkpoints/linemod'
-opt.log_dir = 'experiments/logs/linemod'
+opt.outf = './trained_models/linemod'
+opt.log_dir = './experiments/logs/linemod'
 
 num_objects = 13
 objlist = [1, 2, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15]
@@ -141,7 +141,7 @@ best_test = np.Inf
 
 st_time = time.time()
 
-for epoch in range(2):
+for epoch in range(1):
     estimator.eval()
     refiner.train()
     for i, data in enumerate(tqdm(dataloader), 0):

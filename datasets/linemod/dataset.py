@@ -192,6 +192,7 @@ class PoseDataset(data.Dataset):
                self.norm(torch.from_numpy(img_masked.astype(np.float32))), \
                torch.from_numpy(target.astype(np.float32)), \
                torch.from_numpy(model_points.astype(np.float32)), \
+               torch.from_numpy((label > 0.).astype(np.int)), \
                torch.LongTensor([self.objlist.index(obj)])
 
     def __len__(self):
