@@ -27,6 +27,9 @@ from lib.transformations import euler_matrix, quaternion_matrix, quaternion_from
 from lib.knn.__init__ import KNearestNeighbor
 from lib.utils import setup_logger
 
+import pytorch_ssim
+import pytorch_msssim
+
 from pytorch3d.io import load_ply
 from pytorch3d.structures import Meshes
 from pytorch3d.renderer import (
@@ -137,6 +140,10 @@ success_count = [0 for i in range(num_objects)]
 num_count = [0 for i in range(num_objects)]
 fw = open('{0}/diff_result_logs.txt'.format(output_result_dir), 'w')
 
+mse_loss = nn.MSELoss()
+ssim_loss = pytorch_ssim.SSIM()
+msssim_loss = pytorch_msssim.MSSSIM()
+
 best_test = np.Inf
 
 st_time = time.time()
@@ -144,7 +151,8 @@ st_time = time.time()
 for epoch in range(1):
     estimator.eval()
     refiner.train()
-    for i, data in enumerate(tqdm(dataloader), 0):
+    total_loss, total_num, train_bar = 0.0, 0, tqdm(dataloader)
+    for i, data in enumerate(train_bar, 0):
 
         points, choose, img, target, model_points, label, idx = data
         #print(img.shape)
@@ -157,7 +165,7 @@ for epoch in range(1):
                                                                 Variable(img).cuda(), \
                                                                 Variable(target).cuda(), \
                                                                 Variable(model_points).cuda(), \
-                                                                Variable(label).cuda(), \
+                                                                Variable(label, requires_grad=False).cuda(), \
                                                                 Variable(idx).cuda()
 
         pred_r, pred_t, pred_c, emb = estimator(img, points, choose, idx)
@@ -172,7 +180,7 @@ for epoch in range(1):
 
         #print('RT:', my_r, my_t)
 
-        for ite in range(0, iteration):
+        for ite in range(0, 1):
 
             T = my_t.view(1, 3).repeat(num_points, 1).contiguous().view(1, num_points, 3)
 
@@ -243,11 +251,18 @@ for epoch in range(1):
         #print(torch.sum(label))
         #print(torch.sum((image_binary - label) ** 2))
 
-        loss = torch.sum((image_binary - label[..., 0]) ** 2)
+        #loss = torch.sum((image_binary - label[..., 0]) ** 2)
+        loss = mse_loss(image_binary, label[..., 0])
+        #loss = -ssim_loss(image_binary.unsqueeze(0), label[..., 0].unsqueeze(0).type(torch.float32))
+        #loss = -msssim_loss(image_binary.unsqueeze(0), label[..., 0].unsqueeze(0).type(torch.float32))
         loss.backward()
             
         optimizer.step()
         optimizer.zero_grad()
+
+        total_loss += loss.item()
+        total_num += points.size(0)
+        train_bar.set_description('Train Epoch: [{}/{}] Loss: {:.4f}'.format(epoch, 1, total_loss / total_num))
         
     print('>>>>>>>>----------epoch {0} train finish---------<<<<<<<<'.format(epoch))
 
